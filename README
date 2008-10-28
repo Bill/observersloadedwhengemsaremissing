@@ -1,0 +1,39 @@
+A Model that depends on an application initializer, and that has an Observer, fails to load when a Gem dependency is missing.
+
+In this example app we have a Model Splat that calls the class method "extend_me" which is defined on ActiveRecord::Base by the application initializer in initialize_splat.rb.
+
+If the required Gem (arbitrary gem "Bill-route_name_for" is specified in the example) is missing (not yet installed) then rake gems:install fails before gem installation is attempted to wit:
+
+$ rake gems:install
+(in /Users/Bill/Projects/Rails/ObserversLoadedWhenGemsAreMissing)
+rake aborted!
+undefined local variable or method `extend_me' for Splat(Table doesn't exist):Class
+
+This is because the application initializer in initialize_splat.rb needs to be loaded
+before the model in splat.rb is loaded. But that application initializer is skipped
+when gem dependencies are missing.
+
+The model (Splat) has an observer in models/splat_observer.rb
+Rails::Initializer#prepare_dispatcher does not respect the @gem_dependencies_loaded
+flag so it calls Dispatcher.define_dispatcher_callbacks which in turn calls
+ActiveRecord::Base.instantiate_observers.
+
+side note: Rails::Initializer#load_observers does check @gem_dependencies_loaded and it won't load observers when gems aren't loaded (good!)
+
+Recommend modifying Rails::Initializer#prepare_dispatcher's guard condition
+
+is:
+
+def prepare_dispatcher
+  return unless configuration.frameworks.include?(:action_controller)
+  …
+end
+
+should be:
+
+def prepare_dispatcher
+  return unless configuration.frameworks.include?(:action_controller) && @gem_dependencies_loaded
+  …
+end
+
+Since we don't need the dispatcher if Gem dependencies are missing.
