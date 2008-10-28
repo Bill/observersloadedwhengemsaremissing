@@ -1,3 +1,5 @@
+See Rails ticket: http://rails.lighthouseapp.com/projects/8994-ruby-on-rails/tickets/1286
+
 A Model that depends on an application initializer, and that has an Observer, fails to load when a Gem dependency is missing.
 
 In this example app we have a Model Splat that calls the class method "extend_me" which is defined on ActiveRecord::Base by the application initializer in initialize_splat.rb.
